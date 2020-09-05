@@ -22,17 +22,28 @@ library(plotly)
 library(tigris)
 library(DT)
 library(lubridate)
+library(googledrive)
 
 #Read Data ---------------------------------------------------
 #API KEY: AIzaSyBcX7SpGnEGxE9ePGuCEt5R9M-ycq0dpuM
 #register_google(key = "AIzaSyBcX7SpGnEGxE9ePGuCEt5R9M-ycq0dpuM")
 #key<-"1M5998XCn6OHJ5bDVikpLfnJAlASLN6V"
 
-combined_in<-read_csv("Intermediate/combined.csv")
-donors<-read_csv("Intermediate/donors.csv")
-recipients<-read_csv("Intermediate/recipients.csv")
+
+df_names<-c("combined", "donors", "recipients")
+u<-paste0("https://github.com/ngbasch/indigo-FL/raw/master/",df_names,".Rda")
+
+for (i in (1:length(df_names))){
+  load(url(u[i]))
+}
+
+#combined_in<-read_csv("Intermediate/combined.csv")
+#donors<-read_csv("Intermediate/donors.csv")
+#recipients<-read_csv("Intermediate/recipients.csv")
 
 colors<-c("#c95e4a","#5aad6a","#c55a9f", "#c9a944","#777acd","#7e7c34")
+
+#Clean data -----------------------------------------------------
 
 
 #Calculate weekly boxes
