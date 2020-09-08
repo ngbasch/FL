@@ -8,7 +8,7 @@
 ### Set Environment -------------------------
 options(stringsAsFactors = F)
 options(shiny.usecairo=TRUE)
-setwd("/users/nathanbasch/Documents/FL")
+#setwd("/users/nathanbasch/Documents/FL")
 
 #Load libraries
 library(leaflet)
@@ -19,10 +19,12 @@ library(dplyr)
 library(shinyWidgets)
 library(ggplot2)
 library(plotly)
-library(tigris)
 library(DT)
 library(lubridate)
 library(googledrive)
+library(rlang)
+library(leaflet.extras)
+library(shinyWidgets)
 
 #Read Data ---------------------------------------------------
 #API KEY: AIzaSyBcX7SpGnEGxE9ePGuCEt5R9M-ycq0dpuM
@@ -31,7 +33,7 @@ library(googledrive)
 
 
 df_names<-c("combined", "donors", "recipients")
-u<-paste0("https://github.com/ngbasch/indigo-FL/raw/master/",df_names,".Rda")
+u<-paste0("https://github.com/ngbasch/FL/raw/master/Intermediate/",df_names,".Rda")
 
 for (i in (1:length(df_names))){
   load(url(u[i]))
@@ -56,15 +58,16 @@ weekly_boxes<-
   summarise(weekly_bx = mean(week_bx))%>%
   arrange(type)%>%
   group_by(name, direction)%>%
-  summarise(weekly_label = paste(paste0(type,": ", round(weekly_bx,1), "bx / wk"), collapse = "<br>"))
+  summarise(weekly_label = paste(paste0(type,": ", round(weekly_bx,1), "bx / wk"), collapse = "<br>"),
+            total_weekly_boxes = sum(weekly_bx))
   
   
 
-locations<-donors%>%select("agency" = donor, lon, lat)%>%mutate(label = "donor", color = "red")%>%
+locations<-donors%>%select("agency" = donor, lon, lat)%>%mutate(label = "donor", color = "blue")%>%
   bind_rows(
     recipients%>%
       select("agency" = recipient_agency, lon, lat)%>%
-      mutate(label = "recipient", color = "blue")
+      mutate(label = "recipient", color = "red")
     )%>%
   filter(!is.na(lon))%>%
   mutate(agency = tolower(agency))%>%
@@ -121,6 +124,9 @@ ui<- navbarPage("Food Link", id="nav",
                                           #             multiple = TRUE,
                                           #             selected = sort(unique(combined_in$type)),
                                           #             options = list(`live-search` = TRUE, `actions-box` = TRUE)),
+                                           awesomeCheckbox(inputId = "addmarkers", label = "Show Facility Markers", value = TRUE),
+                                           awesomeCheckbox(inputId = "addcircles", label = "Show Density Circles"),
+                                           awesomeCheckbox(inputId = "addheatmap", label = "Show Density Heatmap"),
                                            selectInput("trend", "Trend", c("Daily","Weekly", "Monthly", "Annually"), selected = "Monthly"),
                                             plotlyOutput("time_series")
                                            #textOutput("Summary Stats"),
@@ -228,44 +234,97 @@ server<-  function(input, output, session) {
     
   })
   
+  
+  #Heatmap code
+  bins <- c(0,1,2,3, 4, 5)
+  pal <- colorBin("Spectral", domain = locations$total_weekly_boxes, bins = bins, na.color = "transparent")
+
+  leaflet(locations%>%filter(label == "donor")) %>%
+    addProviderTiles("CartoDB.Positron")%>%
+    setView(lng = -71.1, lat = 42.4, zoom = 11)%>%
+    addHeatmap(lng = ~lon, lat = ~lat, intensity = ~total_weekly_boxes, max = 0.5, blur = 55, radius = 20)%>%
+    addMarkers(~lon, ~lat, layerId =~agency,# icon = leafIcons,
+               popup = ~paste0('<strong>',as.character(label), " - ",as.character(agency), '</strong>',
+                               "<br><br>", weekly_label), options = markerOptions(opacity = 0.8)
+    )%>%
+    addLegend(pal = pal, values = ~total_weekly_boxes,
+              title="Heat map legend")
+  
+  
+    
+  
+
   # Add points to the map
   observe({
     req(locations_reactive)
     temp<-locations_reactive()
-#    temp<-locations
-    #leaflet()%>%
-    #  setView(lng = -71.1, lat = 42.4, zoom =11 )%>%
-    #addProviderTiles("CartoDB.Positron")%>% 
-    leafletProxy("map", data = temp) %>%
-      clearMarkers()%>%
-      addCircleMarkers(~lon, ~lat, color =  ~ color, opacity = 0.5, radius = 5, fillOpacity = 0.8)%>%
-      addMarkers(data = temp,~lon, ~lat, layerId =~agency,
+    
+    leafIcons <- icons(
+      iconUrl = ifelse(temp$label == "recipient",
+                       "https://image.flaticon.com/icons/svg/3208/3208275.svg",
+                       "https://image.flaticon.com/icons/svg/1361/1361511.svg"
+      ),
+      iconWidth = 30, iconHeight = 30
+      #iconAnchorX = 22, iconAnchorY = 94
+    )
+    
+    leafletProxy("map")%>%clearMarkers()
+    
+    if (input$addmarkers == FALSE)
+      return()
+    
+    isolate({
+      leafletProxy("map", data = temp) %>%
+      addMarkers(data = temp,~lon, ~lat, layerId =~agency, icon = leafIcons,
                  popup = ~paste0('<strong>',as.character(label), " - ",as.character(agency), '</strong>',
                                  "<br><br>", weekly_label)
                  )
-#                 labelOptions = labelOptions(noHide = T, textOnly = T, textsize = "11px", style=list('color'='red', 'font-style' = 'bold')))
-                 #label = ~paste(as.character(label),as.character(agency), sep = " - "))
-#      clearShapes() %>%
-      # addPolygons(data = temp, #stroke = FALSE, smoothFactor = 0.2,
-      #             fillColor = ~pal(temp$value_num),
-      #             weight = 2,
-      #             color = "white",
-      #             dashArray = 4,
-      #             #dashArray = 3,
-      #             fillOpacity = 0.7,
-      #             label = ~temp$NAME,
-      #             popup = paste("Region: ", temp$NAME, "<br>",
-      #                           "State: ", temp$state_alpha, "<br>",
-      #                           paste0(input$metric,": "), comma(temp$value_num), "<br>"),
-      #             highlight =
-      #               highlightOptions(
-      #                 weight = 1,
-      #                 color = "#666",
-      #                 dashArray = "",
-      #                 fillOpacity = 0.7,
-      #                 bringToFront = TRUE)
-      
+    })
   })
+  
+  # clearShapes()%>%
+  #   clearHeatmap()%>%
+    
+  
+  #Add heat density points
+  observe({
+    req(locations_reactive)
+    temp<-locations_reactive()
+    
+    
+    leafletProxy("map") %>% clearShapes()
+
+    if (input$addcircles == FALSE)
+      return()
+    
+    radius = temp[["total_weekly_boxes"]] / median(temp[["total_weekly_boxes"]],na.rm=T) * 400
+    
+    
+    isolate({
+      leafletProxy("map", data = temp)%>%
+        addCircles(~lon, ~lat, color =  ~ color, opacity = 0.5, stroke = FALSE,radius = radius, fillOpacity = 0.2)
+        
+    })
+  })
+  
+  #Add heatmap density
+  observe({
+    req(locations_reactive)
+    temp<-locations_reactive()
+    
+    
+    leafletProxy("map") %>% clearHeatmap()
+    
+    if (input$addheatmap == FALSE)
+      return()
+    
+    isolate({
+      leafletProxy("map", data = temp)%>%
+        addHeatmap(lng = ~lon, lat = ~lat, intensity = ~total_weekly_boxes, max = 0.5, blur = 55, radius = 30)      
+    })
+  })
+  
+  
   
   
   
