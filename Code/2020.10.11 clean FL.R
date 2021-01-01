@@ -130,10 +130,11 @@ ReadReceived<- function(filename){
     select(contains("id"):contains("donor"))%>%
     gather(type, bx, `Bread and Bakery`: Compost)%>%
     clean_names()%>%
-    mutate(date = as.Date(date))%>%
+    mutate(date = as.Date(date),
+           bx = as.numeric(bx))%>%
     select(date, id, donor, type, bx)%>%
     arrange(date, donor)%>%
-    filter(bx!=0, !is.na(date))
+    filter(bx!=0, !is.na(bx), !is.na(date))
     
 }
   
@@ -142,6 +143,17 @@ ReadReceived<- function(filename){
 load("Intermediate/donors.Rda")
 load("Intermediate/recipients.Rda")
 
+bx_to_wgt<-
+  as.data.frame(
+    c("Bread and Bakery" = 18,
+    "Dairy and Eggs" = 26,
+    "Meat and Protein" = 26,
+    "Non-perishables" = 19,
+    "Prepared Foods" = 15,
+    "Produce" = 26)
+    )%>%
+  rownames_to_column("type")%>%
+  rename("lb_per_bx" = 2)
 
 
 #Crosswalk -----------------------------------------------------
@@ -151,9 +163,10 @@ acronym<-
   select(id, recipient_agency, "also_known_as" = acronym)%>%
   separate_rows(also_known_as, sep = ",")
 
-recipients_long<-
+
+#Long table for all versions of name
+recipient_nicknames<-
   recipients%>%
-  mutate(id = 1:n())%>%
   select(id, recipient_agency, also_known_as)%>%
   separate_rows(also_known_as, sep = ",")%>%
   bind_rows(.)%>%
@@ -164,6 +177,17 @@ recipients_long<-
   mutate(recipient = tolower(recipient))%>%
   filter(!duplicated(recipient),!is.na(recipient))
 
+donor_nicknames<-
+  donors%>%
+  select(id, donor, also_known_as)%>%
+  separate_rows(also_known_as, sep = ",")%>%
+  bind_rows(.)%>%
+  arrange(id)%>%
+  mutate(also_known_as = trimws(also_known_as))%>%
+  distinct(.keep_all=T)%>%
+  gather(name_type, donor, donor:also_known_as)%>%
+  mutate(donor = tolower(donor))%>%
+  filter(!duplicated(donor),!is.na(donor))
 
 
 #Recipient Data --------------------------------------
@@ -198,7 +222,7 @@ recipient_names<-distinct(all_dist, recipient, recipient_nickname)%>%mutate(r_id
   mutate(recipient_nickname = trimws(recipient_nickname))%>%
   gather(ntype, t, recipient:recipient_nickname)%>%
   mutate(t = tolower(t))%>%
-  left_join(recipients_long, by = c("t" = "recipient"))%>%
+  left_join(recipient_nicknames, by = c("t" = "recipient"))%>%
   arrange(r_id)
 
 missing_recipients<-
@@ -265,7 +289,15 @@ combined<-
   select(date, "name" = recipient, "nickname" = recipient_nickname, type, bx )%>%
   mutate(direction = "recipient")%>%
   bind_rows(donor_raw%>%select(date, "name" = donor, type, bx)%>%mutate(direction = "donor"))%>%
-  arrange(date)
+  arrange(date)%>%
+  mutate(type = ifelse(grepl("Bakery", type), "Bread and Bakery",
+                       ifelse(grepl("Protein", type), "Meat and Protein", type)))%>%
+  filter(type != "Waste", type != "Compost")%>%
+  left_join(donor_nicknames%>%select(id,"name" = donor)%>%mutate(direction = "donor")%>%
+              bind_rows(recipient_nicknames%>%select(id, "name" = recipient)%>%mutate(direction = "recipient")))%>%
+  left_join(bx_to_wgt)%>%
+  mutate(lb = lb_per_bx * bx)%>%
+  select(date, id, name, direction, type, bx, lb)
   
 
 #Save data --------------------------------------------------------------------------
@@ -283,4 +315,5 @@ combined<-
  write.csv(missing_recipients, "/Users/nathanbasch/Documents/FL/Intermediate/missing_recipients.csv", row.names = FALSE, na = "")
  write.csv(missing_donors, "/Users/nathanbasch/Documents/FL/Intermediate/missing_donors.csv", row.names = FALSE, na = "")
  write.csv(combined, "/Users/nathanbasch/Documents/FL/Intermediate/combined.csv", row.names = FALSE, na = "")
+ save(combined, file = "/Users/nathanbasch/Documents/FL/Intermediate/combined.Rda")
  

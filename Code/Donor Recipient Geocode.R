@@ -30,15 +30,21 @@ register_google(key = "AIzaSyBcX7SpGnEGxE9ePGuCEt5R9M-ycq0dpuM")
 donors<-read_excel("Input/Complete Crosswalk.xlsx", sheet = "Food Donors")%>%
   clean_names()%>%
   filter(!is.na(donor))%>%
-  mutate_geocode(donor, source = "google")
+  mutate_geocode(donor, source = "google")%>%
+  mutate(id = paste0("D",1:n()))
 
 recipients<-read_excel("Input/Complete Crosswalk.xlsx", sheet = "Recipent Agencies")%>%
   clean_names()%>%
   filter(!is.na(recipient_agency))%>%
-  mutate(full_address = ifelse(is.na(delivery_address),recipient_agency,paste0(delivery_address, ", ", town,", MA")))%>%
-  mutate_geocode(full_address, source = "google")
+  mutate(full_address = ifelse(is.na(delivery_address),recipient_agency,paste0(delivery_address, ", ", town,", MA ", zip_code )))%>%
+  mutate_geocode(full_address, source = "google")%>%
+  mutate(id = paste0("R",1:n()))
+
+
 
 
 #Write to CSV ----------------------------------------------------
 write.csv(donors, "Intermediate/donors.csv", row.names = FALSE, na = "")
+save(donors, file = "Intermediate/donors.Rda")
 write.csv(recipients, "Intermediate/recipients.csv", row.names = FALSE, na = "")
+save(recipients, file = "Intermediate/recipients.Rda")
