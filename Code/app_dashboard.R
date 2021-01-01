@@ -45,10 +45,11 @@ SIDEBAR_WIDTH = 300
 df_names<-c("combined", "donors", "recipients")
 u<-paste0("https://github.com/ngbasch/FL/raw/master/Intermediate/",df_names,".Rda")
 
-#for (i in (1:length(df_names))){
-#  load(url(u[i]))
-#}
+for (i in (1:length(df_names))){
+ load(url(u[i]))
+}
 
+combined_in<-combined
 # combined_in<-read_csv("Intermediate/combined.csv")
 # donors<-read_csv("Intermediate/donors.csv")
 # recipients<-read_csv("Intermediate/recipients.csv")
@@ -264,11 +265,21 @@ app_ui <- dashboardPage(
         id = "food_info_panel",
         column(width = 12,
                tabBox(
-                 title = "Map Graph",
+                 title = "Food Type Breakdown",
                  width = NULL,
                  tabPanel("", plotOutput("food_bar"))
                )
-      ))
+      ),
+      column(width = 12,
+             tabBox(
+               title = "Food received per week",
+               width = NULL,
+               tabPanel("", plotOutput("food_hist"))
+               # tabPanel("Scatter", plotOutput("scatter")),
+               # tabPanel("Line", plotlyOutput("line"))
+             )
+      )
+      )
   ))
 )
 
@@ -374,7 +385,7 @@ app_server <- function(input, output, session){
 
   #Reactive expression for the data subsetted to what the user selected
   locations_reactive<-reactive({
-    req(input$us_map_button)
+    #req(input$us_map_button)
     
     #Calculate weekly Lbs
     weekly_Lbs<-
@@ -857,6 +868,16 @@ app_server <- function(input, output, session){
       scale_fill_manual(values = colors)+
       labs(x = "", y = "Proportion of Lbs", title = "Recipient Lbs, by Food Type", colour = "")+
       facet_wrap(~direction) + 
+      theme_bw()
+  }) 
+  
+  output$food_hist <- renderPlot({
+    locations_reactive()%>%
+      ggplot(aes(x = total_weekly_lbs, fill = label, colour = label))+
+      geom_histogram(position = "dodge",alpha = 0.1)+
+      #scale_fill_manual(values = colors)+
+      labs(x = "Total Weekly Lbs", y = "Donors/Recipients", fill = "", colour = "")+
+      facet_wrap(~label)+
       theme_bw()
   }) 
   
