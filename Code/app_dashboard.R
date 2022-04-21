@@ -296,6 +296,11 @@ DEFAULT_TABLE_OPTIONS <- list(scrollX="800px", scrollY="450px", columnDefs = lis
 #'
 #'
 app_server <- function(input, output, session){
+  
+  #Hide sidebar
+  addClass(selector = "body", class = "sidebar-collapse")
+  
+  
   # DYNAMIC RENDER RULES ----------------------------------------------------
   update_all <- function(x) {
     updateSelectInput(session, "tab",

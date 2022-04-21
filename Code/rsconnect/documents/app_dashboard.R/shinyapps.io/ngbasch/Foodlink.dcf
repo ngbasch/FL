@@ -1,0 +1,13 @@
+name: Foodlink
+title: Foodlink
+username:
+account: ngbasch
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2759011
+bundleId: 4048999
+url: https://ngbasch.shinyapps.io/Foodlink/
+when: 1609537120.16228
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: 2020.10.11 clean FL.R|app.R|clean FL.R|Donor Recipient Geocode.R|FL analysis.R|FL plots.R
