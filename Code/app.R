@@ -263,8 +263,8 @@ server<-  function(input, output, session) {
     
     leafIcons <- icons(
       iconUrl = ifelse(temp$label == "recipient",
-                       "https://image.flaticon.com/icons/svg/3208/3208275.svg",
-                       "https://image.flaticon.com/icons/svg/1361/1361511.svg"
+                       "https://github.com/ngbasch/FL/blob/master/Images/food-donation.svg",
+                       "https://github.com/ngbasch/FL/blob/master/Images/food-donation-svgrepo-com.svg"
       ),
       iconWidth = 30, iconHeight = 30
       #iconAnchorX = 22, iconAnchorY = 94
