@@ -444,8 +444,8 @@ app_server <- function(input, output, session){
     
     leafIcons <- icons(
       iconUrl = ifelse(temp$label == "recipient",
-                       "https://image.flaticon.com/icons/svg/3208/3208275.svg",
-                       "https://image.flaticon.com/icons/svg/1361/1361511.svg"
+                       "https://raw.githubusercontent.com/ngbasch/FL/master/Images/donation.svg",
+                       "https://raw.githubusercontent.com/ngbasch/FL/master/Images/food-donation-svgrepo-com.svg"
       ),
       iconWidth = 30, iconHeight = 30
       #iconAnchorX = 22, iconAnchorY = 94
@@ -467,13 +467,12 @@ app_server <- function(input, output, session){
   # Add points to the map
   observe({
     req(locations_reactive)
-
     temp<-locations_reactive()
     
-    leafIcons <- icons(
+    leafIcons <- leaflet::icons(
       iconUrl = ifelse(temp$label == "recipient",
-                       "https://image.flaticon.com/icons/svg/3208/3208275.svg",
-                       "https://image.flaticon.com/icons/svg/1361/1361511.svg"
+                       "https://raw.githubusercontent.com/ngbasch/FL/master/Images/donation.svg",
+                       "https://raw.githubusercontent.com/ngbasch/FL/master/Images/food-donation-svgrepo-com.svg"
       ),
       iconWidth = 30, iconHeight = 30
       #iconAnchorX = 22, iconAnchorY = 94
@@ -642,7 +641,7 @@ app_server <- function(input, output, session){
     
     df%>%
       select(-FY)%>%
-      DT::datatable(options = list(dom = 't',columnDefs = list(list(className = 'dt-center'))),
+      DT::datatable(options = list(dom = 't'),
                     rownames = FALSE, container = sketch, selection = "single")%>%
       formatStyle(
         columns = ncol(df)-2,

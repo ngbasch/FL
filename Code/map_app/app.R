@@ -261,10 +261,10 @@ server<-  function(input, output, session) {
     req(locations_reactive)
     temp<-locations_reactive()
     
-    leafIcons <- icons(
+    leafIcons <- leaflet::icons(
       iconUrl = ifelse(temp$label == "recipient",
-                       "https://github.com/ngbasch/FL/blob/master/Images/food-donation.svg",
-                       "https://github.com/ngbasch/FL/blob/master/Images/food-donation-svgrepo-com.svg"
+                       "https://raw.githubusercontent.com/ngbasch/FL/master/Images/donation.svg",
+                       "https://raw.githubusercontent.com/ngbasch/FL/master/Images/food-donation-svgrepo-com.svg"
       ),
       iconWidth = 30, iconHeight = 30
       #iconAnchorX = 22, iconAnchorY = 94
